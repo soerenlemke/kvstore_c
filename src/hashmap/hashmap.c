@@ -153,3 +153,18 @@ bool hashmap_put(HashMap* map, const uint8_t* key, size_t key_len, const uint8_t
 
     return true;
 }
+
+bool hashmap_get(const HashMap* map, const uint8_t* key, size_t key_len, uint8_t** out_value, size_t* out_value_len) {
+    const size_t index = hash_bytes(key, key_len) % map->capacity;
+
+    HashMapNode* node = map->buckets[index];
+    while (node != nullptr) {
+        if (keys_equal(node->key, node->key_len, key, key_len)) {
+            *out_value = node->value;
+            *out_value_len = node->value_len;
+            return true;
+        }
+        node = node->next;
+    }
+    return false;
+}
