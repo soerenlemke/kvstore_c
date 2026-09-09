@@ -5,8 +5,10 @@
 
 // TODO: consider open addressing instead of separate chaining for cache locality
 
-#define HASHMAP_LOAD_FACTOR_THRESHOLD 0.75
+#define HASHMAP_GROW_THRESHOLD 0.75
+#define HASHMAP_SHRINK_THRESHOLD 0.25
 #define HASHMAP_GROWTH_FACTOR 2
+#define HASHMAP_SHRINK_FACTOR 2
 
 typedef struct HashMapNode {
     uint8_t* key;
@@ -181,8 +183,8 @@ bool hashmap_put(HashMap* map, const uint8_t* key, size_t key_len, const uint8_t
     map->buckets[index] = new_node;
     map->count++;
 
-    // grow if load factor exceeded
-    if ((double) map->count / (double) map->capacity > HASHMAP_LOAD_FACTOR_THRESHOLD) {
+    // grow map
+    if ((double) map->count / (double) map->capacity > HASHMAP_GROW_THRESHOLD) {
         // If calloc fails during resize, the map stays at its old capacity.
         // The put itself still succeeded (the value is stored) — we deliberately
         // degrade performance only here, instead of making hashmap_put
@@ -223,6 +225,22 @@ bool hashmap_remove(HashMap* map, const uint8_t* key, size_t key_len) {
             }
             hashmap_node_free(node);
             map->count--;
+
+            // shrink map
+            if ((double) map->count / (double) map->capacity < HASHMAP_SHRINK_THRESHOLD) {
+                // If calloc fails during resize, the map stays at its old capacity.
+                // The remove itself still succeeded (the entry is gone) — we deliberately
+                // degrade performance only here, instead of making hashmap_remove
+                // incorrectly return false.
+                auto new_capacity = map->capacity / HASHMAP_SHRINK_FACTOR;
+                if (new_capacity < 1) {
+                    new_capacity = 1;
+                }
+                if (new_capacity != map->capacity) {
+                    hashmap_resize(map, new_capacity);
+                }
+            }
+
             return true;
         }
         previous = node;
