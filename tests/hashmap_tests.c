@@ -98,6 +98,77 @@ static void test_remove_missing_key(void) {
     printf("test_remove_missing_key passed\n");
 }
 
+#define STRESS_TEST_SIZE 2000
+
+static void test_resize_preserves_all_entries(void) {
+    HashMap* map = hashmap_create(4); // deliberately small: forces several resizes
+    assert(map != nullptr);
+
+    char key[32];
+    char value[32];
+
+    for (size_t i = 0; i < STRESS_TEST_SIZE; i++) {
+        const int key_len = snprintf(key, sizeof(key), "key%zu", i);
+        const int value_len = snprintf(value, sizeof(value), "val%zu", i);
+        assert(hashmap_put(map, (const uint8_t*)key, (size_t)key_len,
+                            (const uint8_t*)value, (size_t)value_len));
+    }
+
+    for (size_t i = 0; i < STRESS_TEST_SIZE; i++) {
+        const int key_len = snprintf(key, sizeof(key), "key%zu", i);
+        const int value_len = snprintf(value, sizeof(value), "val%zu", i);
+
+        uint8_t* out_value;
+        size_t out_len;
+        assert(hashmap_get(map, (const uint8_t*)key, (size_t)key_len, &out_value, &out_len));
+        assert(out_len == (size_t)value_len);
+        assert(memcmp(out_value, value, out_len) == 0);
+    }
+
+    hashmap_destroy(map);
+    printf("test_resize_preserves_all_entries passed\n");
+}
+
+static void test_resize_then_remove_half(void) {
+    HashMap* map = hashmap_create(4);
+    assert(map != nullptr);
+
+    char key[32];
+    char value[32];
+
+    for (size_t i = 0; i < STRESS_TEST_SIZE; i++) {
+        const int key_len = snprintf(key, sizeof(key), "key%zu", i);
+        const int value_len = snprintf(value, sizeof(value), "val%zu", i);
+        assert(hashmap_put(map, (const uint8_t*)key, (size_t)key_len,
+                            (const uint8_t*)value, (size_t)value_len));
+    }
+
+    // remove every second key, after the map has already grown several times
+    for (size_t i = 0; i < STRESS_TEST_SIZE; i += 2) {
+        const int key_len = snprintf(key, sizeof(key), "key%zu", i);
+        assert(hashmap_remove(map, (const uint8_t*)key, (size_t)key_len));
+    }
+
+    for (size_t i = 0; i < STRESS_TEST_SIZE; i++) {
+        const int key_len = snprintf(key, sizeof(key), "key%zu", i);
+        uint8_t* out_value;
+        size_t out_len;
+        const bool found = hashmap_get(map, (const uint8_t*)key, (size_t)key_len, &out_value, &out_len);
+
+        if (i % 2 == 0) {
+            assert(!found); // removed
+        } else {
+            const int value_len = snprintf(value, sizeof(value), "val%zu", i);
+            assert(found);
+            assert(out_len == (size_t)value_len);
+            assert(memcmp(out_value, value, out_len) == 0);
+        }
+    }
+
+    hashmap_destroy(map);
+    printf("test_resize_then_remove_half passed\n");
+}
+
 int main(void) {
     test_put_and_get();
     test_get_missing_key();
@@ -106,6 +177,8 @@ int main(void) {
     test_update_existing_key();
     test_remove_middle_node();
     test_remove_missing_key();
+    test_resize_preserves_all_entries();
+    test_resize_then_remove_half();
     printf("all tests passed\n");
     return 0;
 }

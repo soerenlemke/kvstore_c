@@ -3,14 +3,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-// TODO: no resizing yet — load factor grows unbounded, chains get long over time
 // TODO: consider open addressing instead of separate chaining for cache locality
+
+#define HASHMAP_LOAD_FACTOR_THRESHOLD 0.75
+#define HASHMAP_GROWTH_FACTOR 2
 
 typedef struct HashMapNode {
     uint8_t* key;
     size_t key_len;
     uint8_t* value;
     size_t value_len;
+    size_t hash;
     struct HashMapNode* next;
 } HashMapNode;
 
@@ -67,6 +70,31 @@ static uint8_t* duplicate_bytes(const uint8_t* data, size_t len) {
     return copy;
 }
 
+static bool hashmap_resize(HashMap* map, const size_t new_capacity) {
+    HashMapNode** new_buckets = calloc(new_capacity, sizeof(HashMapNode*));
+    if (new_buckets == nullptr) {
+        return false;
+    }
+
+    for (size_t i = 0; i < map->capacity; i++) {
+        HashMapNode* node = map->buckets[i];
+        while (node != nullptr) {
+            HashMapNode* next = node->next;
+
+            const size_t new_index = node->hash % new_capacity;
+            node->next = new_buckets[new_index];
+            new_buckets[new_index] = node;
+
+            node = next;
+        }
+    }
+
+    free(map->buckets);
+    map->buckets = new_buckets;
+    map->capacity = new_capacity;
+    return true;
+}
+
 HashMap* hashmap_create(const size_t initial_capacity) {
     if (initial_capacity == 0) {
         return nullptr;
@@ -108,6 +136,7 @@ void hashmap_destroy(HashMap* map) {
 }
 
 bool hashmap_put(HashMap* map, const uint8_t* key, size_t key_len, const uint8_t* value, size_t value_len) {
+    const size_t hash = hash_bytes(key, key_len);
     const size_t index = hash_bytes(key, key_len) % map->capacity;
 
     // check if node already exists
@@ -147,9 +176,19 @@ bool hashmap_put(HashMap* map, const uint8_t* key, size_t key_len, const uint8_t
     }
     new_node->value_len = value_len;
 
+    new_node->hash = hash;
     new_node->next = map->buckets[index];
     map->buckets[index] = new_node;
     map->count++;
+
+    // grow if load factor exceeded
+    if ((double) map->count / (double) map->capacity > HASHMAP_LOAD_FACTOR_THRESHOLD) {
+        // If calloc fails during resize, the map stays at its old capacity.
+        // The put itself still succeeded (the value is stored) — we deliberately
+        // degrade performance only here, instead of making hashmap_put
+        // incorrectly return false.
+        hashmap_resize(map, map->capacity * HASHMAP_GROWTH_FACTOR);
+    }
 
     return true;
 }
