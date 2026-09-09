@@ -43,7 +43,7 @@ static void test_remove(void) {
     printf("test_remove passed\n");
 }
 static void test_collision_chaining(void) {
-    HashMap* map = hashmap_create(1); // erzwingt Kollisionen
+    HashMap* map = hashmap_create(1);
     hashmap_put(map, (const uint8_t*)"a", 1, (const uint8_t*)"1", 1);
     hashmap_put(map, (const uint8_t*)"b", 1, (const uint8_t*)"2", 1);
     hashmap_put(map, (const uint8_t*)"c", 1, (const uint8_t*)"3", 1);
@@ -61,31 +61,31 @@ static void test_collision_chaining(void) {
 static void test_update_existing_key(void) {
     HashMap* map = hashmap_create(16);
     hashmap_put(map, (const uint8_t*)"foo", 3, (const uint8_t*)"bar", 3);
-    hashmap_put(map, (const uint8_t*)"foo", 3, (const uint8_t*)"baz", 3); // überschreiben
+    hashmap_put(map, (const uint8_t*)"foo", 3, (const uint8_t*)"baz", 3);
 
     uint8_t* out_value;
     size_t out_len;
     assert(hashmap_get(map, (const uint8_t*)"foo", 3, &out_value, &out_len));
     assert(out_len == 3);
-    assert(memcmp(out_value, "baz", 3) == 0); // NICHT mehr "bar"
+    assert(memcmp(out_value, "baz", 3) == 0);
 
     hashmap_destroy(map);
     printf("test_update_existing_key passed\n");
 }
 
 static void test_remove_middle_node(void) {
-    HashMap* map = hashmap_create(1); // erzwingt Kollisionen, also eine echte Liste
+    HashMap* map = hashmap_create(1);
     hashmap_put(map, (const uint8_t*)"a", 1, (const uint8_t*)"1", 1);
     hashmap_put(map, (const uint8_t*)"b", 1, (const uint8_t*)"2", 1);
     hashmap_put(map, (const uint8_t*)"c", 1, (const uint8_t*)"3", 1);
 
-    assert(hashmap_remove(map, (const uint8_t*)"b", 1)); // mittendrin löschen
+    assert(hashmap_remove(map, (const uint8_t*)"b", 1));
 
     uint8_t* out_value;
     size_t out_len;
-    assert(hashmap_get(map, (const uint8_t*)"a", 1, &out_value, &out_len)); // a noch da
-    assert(hashmap_get(map, (const uint8_t*)"c", 1, &out_value, &out_len)); // c noch da
-    assert(!hashmap_get(map, (const uint8_t*)"b", 1, &out_value, &out_len)); // b weg
+    assert(hashmap_get(map, (const uint8_t*)"a", 1, &out_value, &out_len));
+    assert(hashmap_get(map, (const uint8_t*)"c", 1, &out_value, &out_len));
+    assert(!hashmap_get(map, (const uint8_t*)"b", 1, &out_value, &out_len));
 
     hashmap_destroy(map);
     printf("test_remove_middle_node passed\n");
