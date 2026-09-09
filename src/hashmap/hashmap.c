@@ -168,3 +168,27 @@ bool hashmap_get(const HashMap* map, const uint8_t* key, size_t key_len, uint8_t
     }
     return false;
 }
+
+bool hashmap_remove(HashMap* map, const uint8_t* key, size_t key_len) {
+    const size_t index = hash_bytes(key, key_len) % map->capacity;
+
+    HashMapNode* node = map->buckets[index];
+    HashMapNode* previous = nullptr;
+
+    while (node != nullptr) {
+        if (keys_equal(node->key, node->key_len, key, key_len)) {
+            if (previous == nullptr) {
+                map->buckets[index] = node->next;
+            } else {
+                previous->next = node->next;
+            }
+            hashmap_node_free(node);
+            map->count--;
+            return true;
+        }
+        previous = node;
+        node = node->next;
+    }
+
+    return false;
+}
