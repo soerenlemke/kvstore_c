@@ -5,8 +5,6 @@
 
 // TODO: consider open addressing instead of separate chaining for cache locality
 
-#define HASHMAP_GROW_THRESHOLD 0.75
-#define HASHMAP_SHRINK_THRESHOLD 0.25
 #define HASHMAP_GROWTH_FACTOR 2
 #define HASHMAP_SHRINK_FACTOR 2
 
@@ -48,7 +46,11 @@ static uint64_t hash_bytes(const uint8_t* key, const size_t key_len) {
 }
 
 // helper function for comparing keys
-static bool keys_equal(const uint8_t* a, const size_t a_len, const uint8_t* b, const size_t b_len) {
+static bool keys_equal(const uint8_t* a, const size_t a_len, const uint8_t* b, const size_t b_len, uint64_t hash_a, uint64_t hash_b) {
+    if (hash_a != hash_b) {
+        return false;
+    }
+
     if (a_len != b_len) {
         return false;
     }
@@ -144,7 +146,7 @@ bool hashmap_put(HashMap* map, const uint8_t* key, size_t key_len, const uint8_t
     // check if node already exists
     HashMapNode* node = map->buckets[index];
     while (node != nullptr) {
-        if (keys_equal(node->key, node->key_len, key, key_len)) {
+        if (keys_equal(node->key, node->key_len, key, key_len, node->hash, hash)) {
             uint8_t* new_value_copy = duplicate_bytes(value, value_len);
             if (new_value_copy == nullptr) {
                 return false;
@@ -184,7 +186,7 @@ bool hashmap_put(HashMap* map, const uint8_t* key, size_t key_len, const uint8_t
     map->count++;
 
     // grow map
-    if ((double) map->count / (double) map->capacity > HASHMAP_GROW_THRESHOLD) {
+    if (4 * (uint64_t) map->count > 3 * (uint64_t) map->capacity) {
         // If calloc fails during resize, the map stays at its old capacity.
         // The put itself still succeeded (the value is stored) — we deliberately
         // degrade performance only here, instead of making hashmap_put
@@ -196,11 +198,12 @@ bool hashmap_put(HashMap* map, const uint8_t* key, size_t key_len, const uint8_t
 }
 
 bool hashmap_get(const HashMap* map, const uint8_t* key, size_t key_len, uint8_t** out_value, size_t* out_value_len) {
-    const size_t index = hash_bytes(key, key_len) % map->capacity;
+    const uint64_t hash = hash_bytes(key, key_len);
+    const size_t index = hash % map->capacity;
 
     HashMapNode* node = map->buckets[index];
     while (node != nullptr) {
-        if (keys_equal(node->key, node->key_len, key, key_len)) {
+        if (keys_equal(node->key, node->key_len, key, key_len, node->hash, hash)) {
             *out_value = node->value;
             *out_value_len = node->value_len;
             return true;
@@ -211,13 +214,14 @@ bool hashmap_get(const HashMap* map, const uint8_t* key, size_t key_len, uint8_t
 }
 
 bool hashmap_remove(HashMap* map, const uint8_t* key, size_t key_len) {
-    const size_t index = hash_bytes(key, key_len) % map->capacity;
+    const uint64_t hash = hash_bytes(key, key_len);
+    const size_t index = hash % map->capacity;
 
     HashMapNode* node = map->buckets[index];
     HashMapNode* previous = nullptr;
 
     while (node != nullptr) {
-        if (keys_equal(node->key, node->key_len, key, key_len)) {
+        if (keys_equal(node->key, node->key_len, key, key_len, node->hash, hash)) {
             if (previous == nullptr) {
                 map->buckets[index] = node->next;
             } else {
@@ -227,7 +231,7 @@ bool hashmap_remove(HashMap* map, const uint8_t* key, size_t key_len) {
             map->count--;
 
             // shrink map
-            if ((double) map->count / (double) map->capacity < HASHMAP_SHRINK_THRESHOLD) {
+            if (4 * (uint64_t) map->count < (uint64_t) map->capacity) {
                 // If calloc fails during resize, the map stays at its old capacity.
                 // The remove itself still succeeded (the entry is gone) — we deliberately
                 // degrade performance only here, instead of making hashmap_remove
