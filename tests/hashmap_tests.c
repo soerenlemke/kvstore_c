@@ -169,6 +169,45 @@ static void test_resize_then_remove_half(void) {
     printf("test_resize_then_remove_half passed\n");
 }
 
+static void test_shrink_to_minimum_capacity(void) {
+    HashMap* map = hashmap_create(1);
+    assert(map != nullptr);
+    assert(hashmap_capacity(map) == 1);
+
+    char key[16];
+    char value[16];
+    const size_t N = 20;
+
+    // Fill enough that the map grows multiple times.
+    for (size_t i = 0; i < N; i++) {
+        const size_t key_len = (size_t) snprintf(key, sizeof(key), "k%zu", i);
+        const size_t value_len = (size_t) snprintf(value, sizeof(value), "v%zu", i);
+        assert(hashmap_put(map, (const uint8_t*)key, key_len, (const uint8_t*)value, value_len));
+
+        // Never allowed to hit 0 - this is the modulo-by-zero crash we found earlier.
+        assert(hashmap_capacity(map) >= 1);
+    }
+    // Verified empirically: 20 puts starting from capacity=1 grow it to 32.
+    assert(hashmap_capacity(map) == 32);
+
+    // Remove everything again, one at a time.
+    for (size_t i = 0; i < N; i++) {
+        const size_t key_len = (size_t) snprintf(key, sizeof(key), "k%zu", i);
+        assert(hashmap_remove(map, (const uint8_t*)key, key_len));
+
+        assert(hashmap_capacity(map) >= 1);
+    }
+
+    // Shrinking is lazy/single-step (see comment in hashmap_remove): a fully
+    // emptied map settles one growth-factor above the true minimum, not at 1.
+    // Verified empirically. If this ever changes (e.g. shrink becomes a loop),
+    // this assertion should change to == 1.
+    assert(hashmap_capacity(map) == 2);
+
+    hashmap_destroy(map);
+    printf("test_shrink_to_minimum_capacity passed\n");
+}
+
 int main(void) {
     test_put_and_get();
     test_get_missing_key();
@@ -179,6 +218,7 @@ int main(void) {
     test_remove_missing_key();
     test_resize_preserves_all_entries();
     test_resize_then_remove_half();
+    test_shrink_to_minimum_capacity();
     printf("all tests passed\n");
     return 0;
 }

@@ -249,3 +249,7 @@ bool hashmap_remove(HashMap* map, const uint8_t* key, size_t key_len) {
 
     return false;
 }
+
+size_t hashmap_capacity(const HashMap* map) {
+    return map->capacity;
+}

@@ -57,3 +57,14 @@ bool hashmap_get(const HashMap* map, const uint8_t* key, size_t key_len,
  * @return true if an entry was found and removed, false otherwise.
  */
 bool hashmap_remove(HashMap* map, const uint8_t* key, size_t key_len);
+
+/**
+ * @brief Returns the current number of buckets in the hashmap.
+ *
+ * Exposed primarily for testing/introspection (e.g. verifying resize
+ * behavior). Not required for normal put/get/remove usage.
+ *
+ * @param map The hashmap to query.
+ * @return Current bucket capacity.
+ */
+size_t hashmap_capacity(const HashMap* map);
