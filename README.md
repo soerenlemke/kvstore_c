@@ -119,7 +119,7 @@ Full parameter documentation is in [`src/hashmap/hashmap.h`](src/hashmap/hashmap
 ## Further reading
 
 I write about the design decisions behind this project on my blog:
-[Building a Generic Hashmap in C](http://localhost:4321/blog/blog/building-a-generic-hashmap-in-c/).
+[Building a Generic Hashmap in C](https://soerenlemke.github.io/blog/blog/building-a-generic-hashmap-in-c/).
 
 ## License
 
