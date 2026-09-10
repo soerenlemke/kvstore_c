@@ -15,7 +15,7 @@ typedef struct HashMapNode {
     size_t key_len;
     uint8_t* value;
     size_t value_len;
-    size_t hash;
+    uint64_t hash;
     struct HashMapNode* next;
 } HashMapNode;
 
@@ -38,8 +38,8 @@ typedef struct HashMap {
  * @param key_len Number of bytes to hash.
  * @return 64-bit hash value. Not cryptographically secure.
  */
-static size_t hash_bytes(const uint8_t* key, const size_t key_len) {
-    size_t hash = 1469598103934665603ULL;
+static uint64_t hash_bytes(const uint8_t* key, const size_t key_len) {
+    uint64_t hash = 14695981039346656037ULL;
     for (size_t i = 0; i < key_len; i++) {
         hash ^= key[i];
         hash *= 1099511628211ULL;
@@ -138,8 +138,8 @@ void hashmap_destroy(HashMap* map) {
 }
 
 bool hashmap_put(HashMap* map, const uint8_t* key, size_t key_len, const uint8_t* value, size_t value_len) {
-    const size_t hash = hash_bytes(key, key_len);
-    const size_t index = hash_bytes(key, key_len) % map->capacity;
+    const uint64_t hash = hash_bytes(key, key_len);
+    const size_t index = hash % map->capacity;
 
     // check if node already exists
     HashMapNode* node = map->buckets[index];
