@@ -116,6 +116,11 @@ Full parameter documentation is in [`src/hashmap/hashmap.h`](src/hashmap/hashmap
   generic container library. Open addressing may be explored later as a
   performance experiment.
 
+## Further reading
+
+I write about the design decisions behind this project on my blog:
+[TODO: add blog post URL once published](TODO).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
