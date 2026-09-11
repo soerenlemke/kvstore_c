@@ -186,7 +186,7 @@ bool hashmap_put(HashMap* map, const uint8_t* key, size_t key_len, const uint8_t
     map->count++;
 
     // grow map
-    if (4 * (uint64_t) map->count > 3 * (uint64_t) map->capacity) {
+    if (map->count > (map->capacity >> 1) + (map->capacity >> 2)) {
         // If calloc fails during resize, the map stays at its old capacity.
         // The put itself still succeeded (the value is stored) — we deliberately
         // degrade performance only here, instead of making hashmap_put
@@ -231,7 +231,7 @@ bool hashmap_remove(HashMap* map, const uint8_t* key, size_t key_len) {
             map->count--;
 
             // shrink map
-            if (4 * (uint64_t) map->count < (uint64_t) map->capacity) {
+            if (map->count < (map->capacity >> 2)) {
                 // If calloc fails during resize, the map stays at its old capacity.
                 // The remove itself still succeeded (the entry is gone) — we deliberately
                 // degrade performance only here, instead of making hashmap_remove
