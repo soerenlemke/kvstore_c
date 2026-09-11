@@ -74,6 +74,23 @@ static uint8_t* duplicate_bytes(const uint8_t* data, size_t len) {
     return copy;
 }
 
+/**
+ * @brief Builds a HashMapEntry view over a node's key/value bytes.
+ *
+ * The returned entry's pointers alias the node's memory (no copy) —
+ * they become invalid once the node is modified or freed.
+ *
+ * Precondition: node must not be nullptr.
+ */
+static HashMapEntry node_to_entry(const HashMapNode* node) {
+    return (HashMapEntry) {
+        .key = node->key,
+        .key_len = node->key_len,
+        .value = node->value,
+        .value_len = node->value_len
+    };
+}
+
 static bool hashmap_resize(HashMap* map, const size_t new_capacity) {
     HashMapNode** new_buckets = calloc(new_capacity, sizeof(HashMapNode*));
     if (new_buckets == nullptr) {
@@ -140,6 +157,16 @@ void hashmap_destroy(HashMap* map) {
 }
 
 bool hashmap_put(HashMap* map, const uint8_t* key, size_t key_len, const uint8_t* value, size_t value_len) {
+    if (map == nullptr) {
+        return false;
+    }
+    if (key == nullptr && key_len > 0) {
+        return false;
+    }
+    if (value == nullptr && value_len > 0) {
+        return false;
+    }
+
     const uint64_t hash = hash_bytes(key, key_len);
     const size_t index = hash % map->capacity;
 
@@ -197,15 +224,24 @@ bool hashmap_put(HashMap* map, const uint8_t* key, size_t key_len, const uint8_t
     return true;
 }
 
-bool hashmap_get(const HashMap* map, const uint8_t* key, size_t key_len, uint8_t** out_value, size_t* out_value_len) {
+bool hashmap_get(const HashMap* map, const uint8_t* key, size_t key_len, HashMapEntry* out_entry) {
+    if (map == nullptr) {
+        return false;
+    }
+    if (key == nullptr && key_len > 0) {
+        return false;
+    }
+    if (out_entry == nullptr) {
+        return false;
+    }
+
     const uint64_t hash = hash_bytes(key, key_len);
     const size_t index = hash % map->capacity;
 
     HashMapNode* node = map->buckets[index];
     while (node != nullptr) {
         if (keys_equal(node->key, node->key_len, key, key_len, node->hash, hash)) {
-            *out_value = node->value;
-            *out_value_len = node->value_len;
+            *out_entry = node_to_entry(node);
             return true;
         }
         node = node->next;
@@ -213,7 +249,14 @@ bool hashmap_get(const HashMap* map, const uint8_t* key, size_t key_len, uint8_t
     return false;
 }
 
-bool hashmap_remove(HashMap* map, const uint8_t* key, size_t key_len) {
+bool hashmap_remove(HashMap* map, const uint8_t* key, size_t key_len, HashMapEntry* out_removed) {
+    if (map == nullptr) {
+        return false;
+    }
+    if (key == nullptr && key_len > 0) {
+        return false;
+    }
+
     const uint64_t hash = hash_bytes(key, key_len);
     const size_t index = hash % map->capacity;
 
@@ -227,6 +270,29 @@ bool hashmap_remove(HashMap* map, const uint8_t* key, size_t key_len) {
             } else {
                 previous->next = node->next;
             }
+
+            // Copy the entry's bytes BEFORE freeing the node, since the
+            // node (and the memory it owns) won't exist afterwards.
+            // If a copy fails, out_removed is left as {0} — the removal
+            // itself still succeeds, only the optional copy is skipped.
+            if (out_removed != nullptr) {
+                *out_removed = (HashMapEntry){0};
+
+                uint8_t* key_copy = duplicate_bytes(node->key, node->key_len);
+                uint8_t* value_copy = duplicate_bytes(node->value, node->value_len);
+
+                if (key_copy != nullptr && value_copy != nullptr) {
+                    out_removed->key = key_copy;
+                    out_removed->key_len = node->key_len;
+                    out_removed->value = value_copy;
+                    out_removed->value_len = node->value_len;
+                } else {
+                    // Avoid leaking whichever copy DID succeed.
+                    free(key_copy);
+                    free(value_copy);
+                }
+            }
+
             hashmap_node_free(node);
             map->count--;
 
@@ -256,4 +322,14 @@ bool hashmap_remove(HashMap* map, const uint8_t* key, size_t key_len) {
 
 size_t hashmap_capacity(const HashMap* map) {
     return map->capacity;
+}
+
+void hashmap_entry_release(HashMapEntry* entry) {
+    if (entry == nullptr) {
+        return;
+    }
+
+    free(entry->key);
+    free(entry->value);
+    *entry = (HashMapEntry){0};
 }
