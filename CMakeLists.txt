@@ -3,9 +3,12 @@ project(kvstore_c C)
 
 set(CMAKE_C_STANDARD 23)
 
-# Enable AddressSanitizer for debug builds
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer -g")
-set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address")
+if (MSVC)
+    add_compile_options(/std:clatest)
+elseif (NOT MINGW)
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address -fno-omit-frame-pointer -g")
+    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address")
+endif()
 
 add_library(hashmap
         src/hashmap/hashmap.c
