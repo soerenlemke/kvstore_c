@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void test_put_and_get(void) {
+static void test_put_and_get() {
     HashMap* map = hashmap_create(16);
     assert(map != nullptr);
 
-    const uint8_t key[] = "foo";
-    const uint8_t value[] = "bar";
+    constexpr uint8_t key[] = "foo";
+    constexpr uint8_t value[] = "bar";
     assert(hashmap_put(map, key, 3, value, 3));
 
     HashMapEntry entry;
@@ -21,7 +21,7 @@ static void test_put_and_get(void) {
     printf("test_put_and_get passed\n");
 }
 
-static void test_get_missing_key(void) {
+static void test_get_missing_key() {
     HashMap* map = hashmap_create(16);
     HashMapEntry entry;
     assert(!hashmap_get(map, (const uint8_t*)"missing", 7, &entry));
@@ -29,7 +29,7 @@ static void test_get_missing_key(void) {
     printf("test_get_missing_key passed\n");
 }
 
-static void test_remove(void) {
+static void test_remove() {
     HashMap* map = hashmap_create(16);
     hashmap_put(map, (const uint8_t*)"foo", 3, (const uint8_t*)"bar", 3);
     assert(hashmap_remove(map, (const uint8_t*)"foo", 3, nullptr));
@@ -40,7 +40,7 @@ static void test_remove(void) {
     printf("test_remove passed\n");
 }
 
-static void test_remove_with_out_entry(void) {
+static void test_remove_with_out_entry() {
     HashMap* map = hashmap_create(16);
     hashmap_put(map, (const uint8_t*)"foo", 3, (const uint8_t*)"bar", 3);
 
@@ -67,7 +67,7 @@ static void test_remove_with_out_entry(void) {
     printf("test_remove_with_out_entry passed\n");
 }
 
-static void test_collision_chaining(void) {
+static void test_collision_chaining() {
     HashMap* map = hashmap_create(1);
     hashmap_put(map, (const uint8_t*)"a", 1, (const uint8_t*)"1", 1);
     hashmap_put(map, (const uint8_t*)"b", 1, (const uint8_t*)"2", 1);
@@ -85,7 +85,7 @@ static void test_collision_chaining(void) {
     printf("test_collision_chaining passed\n");
 }
 
-static void test_update_existing_key(void) {
+static void test_update_existing_key() {
     HashMap* map = hashmap_create(16);
     hashmap_put(map, (const uint8_t*)"foo", 3, (const uint8_t*)"bar", 3);
     hashmap_put(map, (const uint8_t*)"foo", 3, (const uint8_t*)"baz", 3);
@@ -99,7 +99,7 @@ static void test_update_existing_key(void) {
     printf("test_update_existing_key passed\n");
 }
 
-static void test_remove_middle_node(void) {
+static void test_remove_middle_node() {
     HashMap* map = hashmap_create(1);
     hashmap_put(map, (const uint8_t*)"a", 1, (const uint8_t*)"1", 1);
     hashmap_put(map, (const uint8_t*)"b", 1, (const uint8_t*)"2", 1);
@@ -116,7 +116,7 @@ static void test_remove_middle_node(void) {
     printf("test_remove_middle_node passed\n");
 }
 
-static void test_remove_missing_key(void) {
+static void test_remove_missing_key() {
     HashMap* map = hashmap_create(16);
     assert(!hashmap_remove(map, (const uint8_t*)"nope", 4, nullptr));
     hashmap_destroy(map);
@@ -125,7 +125,7 @@ static void test_remove_missing_key(void) {
 
 #define STRESS_TEST_SIZE 2000
 
-static void test_resize_preserves_all_entries(void) {
+static void test_resize_preserves_all_entries() {
     HashMap* map = hashmap_create(4); // deliberately small: forces several resizes
     assert(map != nullptr);
 
@@ -153,7 +153,7 @@ static void test_resize_preserves_all_entries(void) {
     printf("test_resize_preserves_all_entries passed\n");
 }
 
-static void test_resize_then_remove_half(void) {
+static void test_resize_then_remove_half() {
     HashMap* map = hashmap_create(4);
     assert(map != nullptr);
 
@@ -192,14 +192,14 @@ static void test_resize_then_remove_half(void) {
     printf("test_resize_then_remove_half passed\n");
 }
 
-static void test_shrink_to_minimum_capacity(void) {
+static void test_shrink_to_minimum_capacity() {
     HashMap* map = hashmap_create(1);
     assert(map != nullptr);
     assert(hashmap_capacity(map) == 1);
 
     char key[16];
     char value[16];
-    const size_t N = 20;
+    constexpr size_t N = 20;
 
     // Fill enough that the map grows multiple times.
     for (size_t i = 0; i < N; i++) {
@@ -231,42 +231,42 @@ static void test_shrink_to_minimum_capacity(void) {
     printf("test_shrink_to_minimum_capacity passed\n");
 }
 
-static void test_create_zero_capacity(void) {
+static void test_create_zero_capacity() {
     assert(hashmap_create(0) == nullptr);
     printf("test_create_zero_capacity passed\n");
 }
 
-static void test_put_null_map(void) {
+static void test_put_null_map() {
     assert(!hashmap_put(nullptr, (const uint8_t*)"foo", 3, (const uint8_t*)"bar", 3));
     printf("test_put_null_map passed\n");
 }
 
-static void test_get_null_map(void) {
+static void test_get_null_map() {
     HashMapEntry entry;
     assert(!hashmap_get(nullptr, (const uint8_t*)"foo", 3, &entry));
     printf("test_get_null_map passed\n");
 }
 
-static void test_remove_null_map(void) {
+static void test_remove_null_map() {
     assert(!hashmap_remove(nullptr, (const uint8_t*)"foo", 3, nullptr));
     printf("test_remove_null_map passed\n");
 }
 
-static void test_put_null_key_nonzero_len(void) {
+static void test_put_null_key_nonzero_len() {
     HashMap* map = hashmap_create(16);
     assert(!hashmap_put(map, nullptr, 3, (const uint8_t*)"bar", 3));
     hashmap_destroy(map);
     printf("test_put_null_key_nonzero_len passed\n");
 }
 
-static void test_put_null_value_nonzero_len(void) {
+static void test_put_null_value_nonzero_len() {
     HashMap* map = hashmap_create(16);
     assert(!hashmap_put(map, (const uint8_t*)"foo", 3, nullptr, 3));
     hashmap_destroy(map);
     printf("test_put_null_value_nonzero_len passed\n");
 }
 
-static void test_get_null_key_nonzero_len(void) {
+static void test_get_null_key_nonzero_len() {
     HashMap* map = hashmap_create(16);
     HashMapEntry entry;
     assert(!hashmap_get(map, nullptr, 3, &entry));
@@ -274,7 +274,7 @@ static void test_get_null_key_nonzero_len(void) {
     printf("test_get_null_key_nonzero_len passed\n");
 }
 
-static void test_get_null_out_entry(void) {
+static void test_get_null_out_entry() {
     HashMap* map = hashmap_create(16);
     hashmap_put(map, (const uint8_t*)"foo", 3, (const uint8_t*)"bar", 3);
 
@@ -284,14 +284,14 @@ static void test_get_null_out_entry(void) {
     printf("test_get_null_out_entry passed\n");
 }
 
-static void test_remove_null_key_nonzero_len(void) {
+static void test_remove_null_key_nonzero_len() {
     HashMap* map = hashmap_create(16);
     assert(!hashmap_remove(map, nullptr, 3, nullptr));
     hashmap_destroy(map);
     printf("test_remove_null_key_nonzero_len passed\n");
 }
 
-static void test_zero_length_key_allowed(void) {
+static void test_zero_length_key_allowed() {
     HashMap* map = hashmap_create(16);
     // A zero-length key with a nullptr pointer is a valid "empty key" entry.
     assert(hashmap_put(map, nullptr, 0, (const uint8_t*)"bar", 3));
@@ -307,7 +307,7 @@ static void test_zero_length_key_allowed(void) {
     printf("test_zero_length_key_allowed passed\n");
 }
 
-int main(void) {
+int main() {
     test_put_and_get();
     test_get_missing_key();
     test_remove();
